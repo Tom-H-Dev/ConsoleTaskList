@@ -1,0 +1,17 @@
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\bin\Debug\net8.0\ConsoleTaskList.exe
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\bin\Debug\net8.0\ConsoleTaskList.deps.json
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\bin\Debug\net8.0\ConsoleTaskList.runtimeconfig.json
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\bin\Debug\net8.0\ConsoleTaskList.dll
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\bin\Debug\net8.0\ConsoleTaskList.pdb
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.AssemblyInfoInputs.cache
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.AssemblyInfo.cs
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.csproj.CoreCompileInputs.cache
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.dll
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\refint\ConsoleTaskList.dll
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.pdb
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.genruntimeconfig.cache
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ref\ConsoleTaskList.dll
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\bin\Debug\net8.0\Newtonsoft.Json.dll
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.csproj.AssemblyReference.cache
+C:\Users\Tom\Documents\GitHub\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleT.68904834.Up2Date
