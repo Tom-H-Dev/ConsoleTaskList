@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.VisualBasic;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
@@ -13,7 +15,7 @@ namespace CommandTaskList
     {
         private static string url = "http://127.0.0.1/edsa-console-task-list/api.php";
         public static string userToken = string.Empty;
-
+        private static bool logedin = false;
 
         public static string[] userCommands = { "c-help", "c-create task", "c-get list", "c-get task", "c-delete task", "c-logout", "c-clear" };
 
@@ -76,7 +78,7 @@ namespace CommandTaskList
 
             //TODO: Remove testing only
             Console.WriteLine(pass);
-
+            logedin = true;
 
             //Send data to php server to check
             //Do not check here to protect a bit more against hackers
@@ -123,7 +125,7 @@ namespace CommandTaskList
             string hashVal = GetHashString(pass);
             Console.WriteLine(hashVal);
             WelcomeUserText("register");
-
+            logedin = true;
             //Check if register is successful and then continue
         }
 
@@ -160,19 +162,27 @@ namespace CommandTaskList
         static private void WelcomeUserText(string l_callType)
         {
             Console.Clear();
-            switch (l_callType)
+            if (logedin)
             {
-                case "register":
-                    Console.WriteLine(">>>Welcome \"X\" to the Console Task List.");
-                    break;
-                case "login":
-                    Console.WriteLine(">>>Welcome back \"X\".");
-                    break;
-                default:
-                    Console.WriteLine(">>>l_ calltype was wrong, is was entered: " + l_callType);
-                    break;
+                switch (l_callType)
+                {
+                    case "register":
+                        Console.WriteLine(">>>Welcome \"X\" to the Console Task List.");
+                        break;
+                    case "login":
+                        Console.WriteLine(">>>Welcome back \"X\".");
+                        break;
+                    default:
+                        Console.WriteLine(">>>l_ calltype was wrong, is was entered: " + l_callType);
+                        break;
+                }
+                GetUserCommandInput();
             }
-            GetUserCommandInput();
+            else
+            {
+                Console.WriteLine(">>>You are not logged in!");
+                Task.Run(() => Start()).GetAwaiter().GetResult();
+            }
         }
 
         static public void GetUserCommandInput()
@@ -183,36 +193,42 @@ namespace CommandTaskList
             Console.WriteLine("");
             string userInput = Console.ReadLine();
             bool clearConsole = false;
-            switch (userInput)
+            if (logedin)
             {
-                case "c-help":
-                    CommandHelp();
-                    break;
-                case "c-get list":
-                    CommandGetTaskList();
-                    break;
-                case "c-get task":
-                    CommandGetTask();
-                    break;
-                case "c-delete task":
-                    CommandDeleteTask();
-                    break;
-                case "c-clear":
-                    clearConsole = true;
-                    CommandClear();
-                    break;
-                default:
-                    Console.WriteLine(">>>The command you entered was not found");
-                    SetBlankLine();
-                    GetUserCommandInput();
-                    break;
+                switch (userInput)
+                {
+                    case "c-help":
+                        CommandHelp();
+                        break;
+                    case "c-get list":
+                        CommandGetTaskList();
+                        break;
+                    case "c-get task":
+                        CommandGetTask();
+                        break;
+                    case "c-delete task":
+                        CommandDeleteTask();
+                        break;
+                    case "c-clear":
+                        clearConsole = true;
+                        CommandClear();
+                        break;
+                    default:
+                        Console.WriteLine(">>>The command you entered was not found");
+                        SetBlankLine();
+                        GetUserCommandInput();
+                        break;
+                }
+            }
+            else
+            {
+                Console.WriteLine(">>>You are not logged in!");
+                Task.Run(() => Start()).GetAwaiter().GetResult();
             }
             if (!clearConsole)
-            {
-            }
+                SetBlankLine();
             clearConsole = false;
 
-            SetBlankLine();
         }
         static void SetBlankLine()
         {
@@ -240,35 +256,70 @@ namespace CommandTaskList
 
         static void CommandCreateTask()
         {
+            if (logedin)
+            {
 
+            }
+            else
+            {
+                Console.WriteLine(">>>You are not logged in!");
+                Task.Run(() => Start()).GetAwaiter().GetResult();
+            }
         }
 
         static void CommandGetTaskList()
         {
-            Console.WriteLine("Get list");
+            if (logedin)
+            {
+                Console.WriteLine("Get list");
+
+            }
+            else
+            {
+                Console.WriteLine(">>>You are not logged in!");
+                Task.Run(() => Start()).GetAwaiter().GetResult();
+            }
         }
 
         static void CommandGetTask()
         {
-            Console.WriteLine(">>>What task do you want to see?");
-            Console.WriteLine(">>>Enter like \"Task {task name}\"");
-            string userTaskInput = Console.ReadLine();
+            if (logedin)
+            {
+                Console.WriteLine(">>>What task do you want to see?");
+                Console.WriteLine(">>>Enter like \"Task {task name}\"");
+                string userTaskInput = Console.ReadLine();
+            }
+            else
+            {
+                Console.WriteLine(">>>You are not logged in!");
+                Task.Run(() => Start()).GetAwaiter().GetResult();
+            }
         }
 
         static void CommandDeleteTask()
         {
-            Console.WriteLine(">>>What task do you want to delete?");
-            Console.WriteLine(">>>Enter like \"Delete {task name}\"");
-            string userTaskInput = Console.ReadLine();
+            if (logedin)
+            {
+                Console.WriteLine(">>>What task do you want to delete?");
+                Console.WriteLine(">>>Enter like \"Delete {task name}\"");
+                string userTaskInput = Console.ReadLine();
+            }
+            else
+            {
+                Console.WriteLine(">>>You are not logged in!");
+                Task.Run(() => Start()).GetAwaiter().GetResult();
+            }
         }
 
         static void CommandLogout()
         {
+
             //TODO: Logout
 
             Console.Clear();
             Console.WriteLine(">>>Logout successful");
             Console.WriteLine("");
+            logedin = false;
         }
 
         #region API Calls
