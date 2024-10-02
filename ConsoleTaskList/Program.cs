@@ -17,7 +17,7 @@ namespace CommandTaskList
         public static string userToken = string.Empty;
         private static bool logedin = false;
 
-        public static string[] userCommands = { "c-help", "c-create task", "c-get list", "c-get task", "c-delete task", "c-logout", "c-clear" };
+        public static string[] userCommands = { "c-help", "c-create task", "c-get list", "c-get task", "c-delete task", "c-logout", "c-clear", "c-exit" };
 
         static void Main(string[] args)
         {
@@ -42,7 +42,7 @@ namespace CommandTaskList
                     RegisterAccountSequence();
                     break;
                 default:
-                    Console.WriteLine(">>>The command you entered was not found");
+                    Console.WriteLine("<!>The command you entered was not found");
                     Start();
                     break;
             }
@@ -124,8 +124,8 @@ namespace CommandTaskList
             Console.WriteLine(pass);
             string hashVal = GetHashString(pass);
             Console.WriteLine(hashVal);
-            WelcomeUserText("register");
             logedin = true;
+            WelcomeUserText("register");
             //Check if register is successful and then continue
         }
 
@@ -173,7 +173,7 @@ namespace CommandTaskList
                         Console.WriteLine(">>>Welcome back \"X\".");
                         break;
                     default:
-                        Console.WriteLine(">>>l_ calltype was wrong, is was entered: " + l_callType);
+                        Console.WriteLine("<!>l_ calltype was wrong, is was entered: " + l_callType);
                         break;
                 }
                 GetUserCommandInput();
@@ -213,8 +213,11 @@ namespace CommandTaskList
                         clearConsole = true;
                         CommandClear();
                         break;
+                    case "c-exit":
+
+                        break;
                     default:
-                        Console.WriteLine(">>>The command you entered was not found");
+                        Console.WriteLine("<!>The command you entered was not found");
                         SetBlankLine();
                         GetUserCommandInput();
                         break;
@@ -271,7 +274,7 @@ namespace CommandTaskList
         {
             if (logedin)
             {
-                Console.WriteLine("Get list");
+                Console.WriteLine(">>>Get list");
 
             }
             else
@@ -321,6 +324,23 @@ namespace CommandTaskList
             Console.WriteLine("");
             logedin = false;
         }
+
+
+        static void CommandExit()
+        {
+            if (logedin)
+            {
+                //TOOD: Logout functionality
+                Environment.Exit(0);
+
+            }
+            else
+            {
+                Console.WriteLine(">>>You are not logged in!");
+                Task.Run(() => Start()).GetAwaiter().GetResult();
+            }
+        }
+
 
         #region API Calls
     }
