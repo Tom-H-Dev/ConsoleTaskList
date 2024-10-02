@@ -33,3 +33,6 @@ C:\Users\Admin\Documents\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\refint
 C:\Users\Admin\Documents\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.pdb
 C:\Users\Admin\Documents\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ConsoleTaskList.genruntimeconfig.cache
 C:\Users\Admin\Documents\ConsoleTaskList\ConsoleTaskList\obj\Debug\net8.0\ref\ConsoleTaskList.dll
+C:\Users\Admin\Documents\ConsoleTaskList\ConsoleTaskList\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\Admin\Documents\ConsoleTaskList\ConsoleTaskList\bin\Debug\net8.0\Microsoft.Extensions.Logging.Abstractions.dll
+C:\Users\Admin\Documents\ConsoleTaskList\ConsoleTaskList\bin\Debug\net8.0\Npgsql.dll

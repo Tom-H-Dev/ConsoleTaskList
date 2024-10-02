@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ConsoleTaskList")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7a9a2221c6e35c7de300ce9762821f2c9c030a71")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+94d2d5c0c71f6f468920074cce619b3ee84496ab")]
 [assembly: System.Reflection.AssemblyProductAttribute("ConsoleTaskList")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ConsoleTaskList")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
