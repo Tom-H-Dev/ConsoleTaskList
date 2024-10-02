@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -75,7 +76,7 @@ namespace CommandTaskList
 
             //TODO: Remove testing only
             Console.WriteLine(pass);
-
+            
 
             //Send data to php server to check
             //Do not check here to protect a bit more against hackers
@@ -119,12 +120,44 @@ namespace CommandTaskList
 
             //TODO: Remove testing only
             Console.WriteLine(pass);
-            var apiService = new CreateAccountAPICall();
-            await apiService.CreateAccount(email, pass);
+            string hashVal = GetHashString(pass);
+            Console.WriteLine(hashVal);
 
 
             //Check if register is successful and then continue
         }
+
+
+
+        // Method to compute the SHA256 hash of a given string
+        public static byte[] GetHash(string inputString)
+        {
+            // Create a new instance of the SHA256 hashing algorithm
+            using (HashAlgorithm algorithm = SHA256.Create())
+                // Convert the input string to a byte array and compute the hash
+                return algorithm.ComputeHash(Encoding.UTF8.GetBytes(inputString));
+        }
+
+
+
+        // Method to convert the byte array hash to a hexadecimal string
+        public static string GetHashString(string inputString)
+        {
+            // Create a new StringBuilder to store the hexadecimal string
+            StringBuilder sb = new StringBuilder();
+
+            // Get the byte array hash by calling the GetHash method
+            foreach (byte b in GetHash(inputString))
+                // Convert each byte to a two-character hexadecimal string and append to the StringBuilder
+                sb.Append(b.ToString("X2"));
+
+            // Return the complete hexadecimal string
+            return sb.ToString();
+        }
+
+
+
+
 
         static public void GetUserCommandInput()
         {
