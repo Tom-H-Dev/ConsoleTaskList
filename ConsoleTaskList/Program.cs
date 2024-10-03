@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Net.Http;
@@ -7,14 +6,25 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-//using Newtonsoft.Json;
+using Npgsql;
 
 namespace CommandTaskList
 {
+
+    //TODO: Use try catch to see check if something is broken or not
+
+    /*
+        For each user create new table named the username.
+        For login get table data from username.
+        Disable usernames that contain a list of banned wordes like DROP, DELETE etc.
+     
+     
+     */
+
+
     class Program
     {
-        private static string url = "http://127.0.0.1/edsa-console-task-list/api.php";
-        public static string userToken = string.Empty;
+        //private static var connString = "Host=myserver;Username=mylogin;Password=mypass;Database=mydatabase";
         private static bool logedin = false;
 
         public static string[] userCommands = { "c-help", "c-create task", "c-get list", "c-get task", "c-delete task", "c-logout", "c-clear", "c-exit" };
@@ -125,7 +135,79 @@ namespace CommandTaskList
             string hashVal = GetHashString(pass);
             Console.WriteLine(hashVal);
             logedin = true;
-            WelcomeUserText("register");
+
+
+
+
+
+            // Define your connection string
+            var connString = "Host=localhost;Username=postgres;Password=12345;Database=postgres";
+
+            try
+            {
+                // Open the connection
+                    Console.WriteLine("Here.");
+                await using var conn = new NpgsqlConnection(connString);
+                    Console.WriteLine("Here.");
+                await conn.OpenAsync();
+
+                // SQL insert statement
+                Console.WriteLine("Here.");
+                var insertCommand = @"INSERT INTO users (username, hash) VALUES (@username, @hash)";
+
+                    Console.WriteLine("Here.");
+                await using (var cmd = new NpgsqlCommand(insertCommand, conn))
+                {
+                    Console.WriteLine("Here.");
+                    // Assuming 'email', 'username', and 'hashVal' are already defined somewhere
+                    Console.WriteLine("Here.");
+                    cmd.Parameters.AddWithValue("username", email);
+                    Console.WriteLine("Here.");
+                    cmd.Parameters.AddWithValue("hash", hashVal);
+
+                    Console.WriteLine("Here.");
+                    // Execute the command
+                    await cmd.ExecuteNonQueryAsync();
+                    Console.WriteLine("Here.");
+                    Console.WriteLine("New user inserted successfully.");
+                    WelcomeUserText("register");
+                }
+            }
+            catch (Npgsql.PostgresException ex)
+            {
+                // Handle PostgreSQL-specific exceptions
+                Console.WriteLine($"PostgreSQL error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Handle other exceptions
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
+
+
+
+            // You can also add a close connection or use 'await conn.CloseAsync();' when done
+
+
+
+            //await using (var cmd = new NpgsqlCommand("INSERT INTO users VALUES (@p)", conn))
+            //{
+            //    cmd.Parameters.AddWithValue("p", "Hello world");
+            //    await cmd.ExecuteNonQueryAsync();
+            //}
+
+            //// Retrieve all rows
+            //await using (var cmd = new NpgsqlCommand("SELECT some_field FROM data", conn))
+            //await using (var reader = await cmd.ExecuteReaderAsync())
+            //{
+            //    while (await reader.ReadAsync())
+            //        Console.WriteLine(reader.GetString(0));
+            //}
+
+
+
+
+
             //Check if register is successful and then continue
         }
 
