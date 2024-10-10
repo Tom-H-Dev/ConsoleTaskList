@@ -12,7 +12,6 @@ namespace CommandTaskList
 {
 
     //TODO: Use try catch to see check if something is broken or not
-
     /*
         For each user create new table named the username.
         For login get table data from username.
@@ -26,6 +25,7 @@ namespace CommandTaskList
     {
         //private static var connString = "Host=myserver;Username=mylogin;Password=mypass;Database=mydatabase";
         private static bool logedin = false;
+        static string connString = "Host=localhost;Username=postgres;Password=12345;Database=postgres";
 
         public static string[] userCommands = { "c-help", "c-create task", "c-get list", "c-get task", "c-delete task", "c-logout", "c-clear", "c-exit" };
 
@@ -59,7 +59,7 @@ namespace CommandTaskList
 
         }
 
-        static void LoginSquence()
+        static async Task LoginSquence()
         {
             Console.WriteLine(">>>Please enter your email");
             string email = Console.ReadLine();
@@ -88,7 +88,61 @@ namespace CommandTaskList
 
             //TODO: Remove testing only
             Console.WriteLine(pass);
-            logedin = true;
+
+
+            //try
+            //{
+            //    // Open the connection
+            //    await using var conn = new NpgsqlConnection(connString);
+            //    await conn.OpenAsync();
+
+            //    // SQL select statement to check if the user already exists
+            //    var selectCommand = @"SELECT * FROM users WHERE username = @username";
+
+            //    await using (var cmd = new NpgsqlCommand(selectCommand, conn))
+            //    {
+            //        // Assuming 'email' is already defined somewhere
+            //        cmd.Parameters.AddWithValue("@username", email);
+
+            //        // Execute the query
+            //        await using (var reader = await cmd.ExecuteReaderAsync())
+            //        {
+            //            if (await reader.ReadAsync())
+            //            {
+            //                // User exists, handle this case (e.g., return a message)
+            //                Console.WriteLine("User with this email already exists.");
+            //            }
+            //            else
+            //            {
+            //                // User does not exist, you can insert the new user here
+            //                Console.WriteLine("No user found with this email. Proceeding to insert.");
+
+            //                // Now you can proceed to write the insert statement if needed
+            //                var insertCommand = @"INSERT INTO users (username, hash) VALUES (@username, @hash)";
+            //                await using (var insertCmd = new NpgsqlCommand(insertCommand, conn))
+            //                {
+            //                    // Assuming 'hashVal' is already defined
+            //                    insertCmd.Parameters.AddWithValue("@username", email);
+            //                    //insertCmd.Parameters.AddWithValue("@hash", hashVal);
+
+            //                    // Execute the insert command
+            //                    await insertCmd.ExecuteNonQueryAsync();
+            //                    Console.WriteLine("New user inserted successfully.");
+            //                }
+            //            }
+            //        }
+            //    }
+            //}
+            //catch (Npgsql.PostgresException ex)
+            //{
+            //    // Handle PostgreSQL-specific exceptions
+            //    Console.WriteLine($"PostgreSQL error: {ex.Message}");
+            //}
+            //catch (Exception ex)
+            //{
+            //    // Handle other exceptions
+            //    Console.WriteLine($"An error occurred: {ex.Message}");
+            //}
 
             //Send data to php server to check
             //Do not check here to protect a bit more against hackers
@@ -101,6 +155,7 @@ namespace CommandTaskList
             //Response if not correct
 
 
+            logedin = true;
         }
 
         static async Task RegisterAccountSequence()
@@ -137,40 +192,48 @@ namespace CommandTaskList
             logedin = true;
 
 
-
-
-
-            // Define your connection string
-            var connString = "Host=localhost;Username=postgres;Password=12345;Database=postgres";
-
             try
             {
                 // Open the connection
-                    Console.WriteLine("Here.");
                 await using var conn = new NpgsqlConnection(connString);
-                    Console.WriteLine("Here.");
-                await conn.OpenAsync();
+                conn.Open();
 
-                // SQL insert statement
-                Console.WriteLine("Here.");
-                var insertCommand = @"INSERT INTO users (username, hash) VALUES (@username, @hash)";
+                // SQL select statement to check if the user already exists
+                var selectCommand = @"SELECT * FROM users WHERE username = @username";
 
-                    Console.WriteLine("Here.");
-                await using (var cmd = new NpgsqlCommand(insertCommand, conn))
+                await using (var cmd = new NpgsqlCommand(selectCommand, conn))
                 {
-                    Console.WriteLine("Here.");
-                    // Assuming 'email', 'username', and 'hashVal' are already defined somewhere
-                    Console.WriteLine("Here.");
-                    cmd.Parameters.AddWithValue("username", email);
-                    Console.WriteLine("Here.");
-                    cmd.Parameters.AddWithValue("hash", hashVal);
+                    // Assuming 'email' is already defined somewhere
+                    cmd.Parameters.AddWithValue("@username", email);
 
-                    Console.WriteLine("Here.");
-                    // Execute the command
-                    await cmd.ExecuteNonQueryAsync();
-                    Console.WriteLine("Here.");
-                    Console.WriteLine("New user inserted successfully.");
-                    WelcomeUserText("register");
+                    // Execute the query
+                    await using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            // User exists, handle this case (e.g., return a message)
+                            Console.WriteLine("User with this email already exists.");
+                            LoginSquence();
+                        }
+                        else
+                        {
+                            // User does not exist, you can insert the new user here
+                            Console.WriteLine("No user found with this email. Proceeding to insert.");
+
+                            // Now you can proceed to write the insert statement if needed
+                            var insertCommand = @"INSERT INTO users (username, hash) VALUES (@username, @hash)";
+                            await using (var insertCmd = new NpgsqlCommand(insertCommand, conn))
+                            {
+                                // Assuming 'hashVal' is already defined
+                                insertCmd.Parameters.AddWithValue("@username", email);
+                                //insertCmd.Parameters.AddWithValue("@hash", hashVal);
+
+                                // Execute the insert command
+                                await insertCmd.ExecuteNonQueryAsync();
+                                Console.WriteLine("New user inserted successfully.");
+                            }
+                        }
+                    }
                 }
             }
             catch (Npgsql.PostgresException ex)
@@ -183,30 +246,6 @@ namespace CommandTaskList
                 // Handle other exceptions
                 Console.WriteLine($"An error occurred: {ex.Message}");
             }
-
-
-
-            // You can also add a close connection or use 'await conn.CloseAsync();' when done
-
-
-
-            //await using (var cmd = new NpgsqlCommand("INSERT INTO users VALUES (@p)", conn))
-            //{
-            //    cmd.Parameters.AddWithValue("p", "Hello world");
-            //    await cmd.ExecuteNonQueryAsync();
-            //}
-
-            //// Retrieve all rows
-            //await using (var cmd = new NpgsqlCommand("SELECT some_field FROM data", conn))
-            //await using (var reader = await cmd.ExecuteReaderAsync())
-            //{
-            //    while (await reader.ReadAsync())
-            //        Console.WriteLine(reader.GetString(0));
-            //}
-
-
-
-
 
             //Check if register is successful and then continue
         }
