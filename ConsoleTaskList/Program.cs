@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Net.Http;
@@ -90,59 +91,65 @@ namespace CommandTaskList
             Console.WriteLine(pass);
 
 
-            //try
-            //{
-            //    // Open the connection
-            //    await using var conn = new NpgsqlConnection(connString);
-            //    await conn.OpenAsync();
+            try
+            {
+                using (var conn = new NpgsqlConnection(connString))
+                {
+                    conn.Open(); // Open the connection
 
-            //    // SQL select statement to check if the user already exists
-            //    var selectCommand = @"SELECT * FROM users WHERE username = @username";
+                    // SQL query to get both the email and hash
+                    string query = "SELECT username, hash FROM users WHERE LOWER(username) = LOWER(@Email)";
 
-            //    await using (var cmd = new NpgsqlCommand(selectCommand, conn))
-            //    {
-            //        // Assuming 'email' is already defined somewhere
-            //        cmd.Parameters.AddWithValue("@username", email);
+                    using (var cmd = new NpgsqlCommand(query, conn))
+                    {
+                        // Add the email parameter to prevent SQL injection
+                        cmd.Parameters.AddWithValue("Email", email);
 
-            //        // Execute the query
-            //        await using (var reader = await cmd.ExecuteReaderAsync())
-            //        {
-            //            if (await reader.ReadAsync())
-            //            {
-            //                // User exists, handle this case (e.g., return a message)
-            //                Console.WriteLine("User with this email already exists.");
-            //            }
-            //            else
-            //            {
-            //                // User does not exist, you can insert the new user here
-            //                Console.WriteLine("No user found with this email. Proceeding to insert.");
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                // Retrieve email and hash from the database
+                                string storedEmail = reader.GetString(0);
+                                string hashString = reader.GetString(1); // Assuming hash is stored as a hex string
 
-            //                // Now you can proceed to write the insert statement if needed
-            //                var insertCommand = @"INSERT INTO users (username, hash) VALUES (@username, @hash)";
-            //                await using (var insertCmd = new NpgsqlCommand(insertCommand, conn))
-            //                {
-            //                    // Assuming 'hashVal' is already defined
-            //                    insertCmd.Parameters.AddWithValue("@username", email);
-            //                    //insertCmd.Parameters.AddWithValue("@hash", hashVal);
+                                // Convert the hex string to byte[]
+                                byte[] storedHash = HexStringToByteArray(hashString);
 
-            //                    // Execute the insert command
-            //                    await insertCmd.ExecuteNonQueryAsync();
-            //                    Console.WriteLine("New user inserted successfully.");
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
-            //catch (Npgsql.PostgresException ex)
-            //{
-            //    // Handle PostgreSQL-specific exceptions
-            //    Console.WriteLine($"PostgreSQL error: {ex.Message}");
-            //}
-            //catch (Exception ex)
-            //{
-            //    // Handle other exceptions
-            //    Console.WriteLine($"An error occurred: {ex.Message}");
-            //}
+                                // Hash the input password
+                                byte[] inputHash = GetHash(pass);
+
+                                // Compare email and password hash
+                                if (storedEmail.Equals(email, StringComparison.OrdinalIgnoreCase) && CompareHashes(storedHash, inputHash))
+                                {
+                                    Console.WriteLine("Email and password are correct.");
+                                    logedin = true;
+                                    WelcomeUserText("login");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Invalid email or password.");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Email not found.");
+                                LoginSquence();
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Npgsql.PostgresException ex)
+            {
+                // Handle PostgreSQL-specific exceptions
+                Console.WriteLine($"PostgreSQL error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Handle other exceptions
+                Console.WriteLine($"An error occurred: {ex.Message}");
+            }
 
             //Send data to php server to check
             //Do not check here to protect a bit more against hackers
@@ -155,7 +162,6 @@ namespace CommandTaskList
             //Response if not correct
 
 
-            logedin = true;
         }
 
         static async Task RegisterAccountSequence()
@@ -203,7 +209,6 @@ namespace CommandTaskList
 
                 await using (var cmd = new NpgsqlCommand(selectCommand, conn))
                 {
-                    // Assuming 'email' is already defined somewhere
                     cmd.Parameters.AddWithValue("@username", email);
 
                     // Execute the query
@@ -211,41 +216,39 @@ namespace CommandTaskList
                     {
                         if (await reader.ReadAsync())
                         {
-                            // User exists, handle this case (e.g., return a message)
                             Console.WriteLine("User with this email already exists.");
                             LoginSquence();
+                            return; // Exit the method to prevent further execution
                         }
-                        else
-                        {
-                            // User does not exist, you can insert the new user here
-                            Console.WriteLine("No user found with this email. Proceeding to insert.");
+                    } // Reader is disposed and closed here
 
-                            // Now you can proceed to write the insert statement if needed
-                            var insertCommand = @"INSERT INTO users (username, hash) VALUES (@username, @hash)";
-                            await using (var insertCmd = new NpgsqlCommand(insertCommand, conn))
-                            {
-                                // Assuming 'hashVal' is already defined
-                                insertCmd.Parameters.AddWithValue("@username", email);
-                                //insertCmd.Parameters.AddWithValue("@hash", hashVal);
+                    // If no user was found, proceed to insert
+                    Console.WriteLine("No user found with this email. Proceeding to insert.");
 
-                                // Execute the insert command
-                                await insertCmd.ExecuteNonQueryAsync();
-                                Console.WriteLine("New user inserted successfully.");
-                            }
-                        }
+                    var insertCommand = @"INSERT INTO users (username, hash) VALUES (@username, @hash)";
+
+                    await using (var insertCmd = new NpgsqlCommand(insertCommand, conn))
+                    {
+                        // Assuming 'hashVal' is already defined
+                        insertCmd.Parameters.AddWithValue("@username", email);
+                        insertCmd.Parameters.AddWithValue("@hash", hashVal);
+
+                        // Execute the insert command
+                        await insertCmd.ExecuteNonQueryAsync();
+                        Console.WriteLine("New user inserted successfully.");
+                        WelcomeUserText("register");
                     }
                 }
             }
             catch (Npgsql.PostgresException ex)
             {
-                // Handle PostgreSQL-specific exceptions
                 Console.WriteLine($"PostgreSQL error: {ex.Message}");
             }
             catch (Exception ex)
             {
-                // Handle other exceptions
                 Console.WriteLine($"An error occurred: {ex.Message}");
             }
+
 
             //Check if register is successful and then continue
         }
@@ -261,7 +264,29 @@ namespace CommandTaskList
                 return algorithm.ComputeHash(Encoding.UTF8.GetBytes(inputString));
         }
 
+        static bool CompareHashes(byte[] hash1, byte[] hash2)
+        {
+            if (hash1.Length != hash2.Length) return false;
 
+            for (int i = 0; i < hash1.Length; i++)
+            {
+                if (hash1[i] != hash2[i]) return false;
+            }
+            return true;
+        }
+
+        // Convert a hex string to a byte array
+        static byte[] HexStringToByteArray(string hex)
+        {
+            int length = hex.Length;
+            byte[] bytes = new byte[length / 2];
+
+            for (int i = 0; i < length; i += 2)
+            {
+                bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
+            }
+            return bytes;
+        }
 
         // Method to convert the byte array hash to a hexadecimal string
         public static string GetHashString(string inputString)
