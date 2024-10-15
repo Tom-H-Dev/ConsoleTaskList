@@ -24,24 +24,27 @@ namespace CommandTaskList
 
     class Program
     {
-        //private static var connString = "Host=myserver;Username=mylogin;Password=mypass;Database=mydatabase";
         private static bool logedin = false;
         static string connString = "Host=localhost;Username=postgres;Password=12345;Database=postgres";
 
         public static string[] userCommands = { "c-help", "c-create task", "c-get list", "c-get task", "c-delete task", "c-logout", "c-clear", "c-exit" };
 
+        private static int questionAmount = 0;
+        private static int userID;
+
         static void Main(string[] args)
+        {
+
+            Task.Run(() => Start()).GetAwaiter().GetResult();
+        }
+
+        static async Task Start()
         {
             //make a login Cycle
             Console.WriteLine(">>>Welcome to the CommandTaskList!");
             //Would you like to login or register?
             Console.WriteLine(">>>Would you like to login or register?");
             Console.WriteLine(">>>To login type \"c-login\", and to register type \"c-register\"");
-            Task.Run(() => Start()).GetAwaiter().GetResult();
-        }
-
-        static async Task Start()
-        {
             string userAccountInput = Console.ReadLine();
 
             switch (userAccountInput)
@@ -98,7 +101,7 @@ namespace CommandTaskList
                     conn.Open(); // Open the connection
 
                     // SQL query to get both the email and hash
-                    string query = "SELECT username, hash FROM users WHERE LOWER(username) = LOWER(@Email)";
+                    string query = "SELECT username, hash, user_id, questionamount FROM users WHERE LOWER(username) = LOWER(@Email)";
 
                     using (var cmd = new NpgsqlCommand(query, conn))
                     {
@@ -112,7 +115,6 @@ namespace CommandTaskList
                                 // Retrieve email and hash from the database
                                 string storedEmail = reader.GetString(0);
                                 string hashString = reader.GetString(1); // Assuming hash is stored as a hex string
-
                                 // Convert the hex string to byte[]
                                 byte[] storedHash = HexStringToByteArray(hashString);
 
@@ -123,6 +125,8 @@ namespace CommandTaskList
                                 if (storedEmail.Equals(email, StringComparison.OrdinalIgnoreCase) && CompareHashes(storedHash, inputHash))
                                 {
                                     Console.WriteLine("Email and password are correct.");
+                                    userID = reader.GetInt32(2);
+                                    questionAmount = reader.GetInt32(3);
                                     logedin = true;
                                     WelcomeUserText("login");
                                 }
@@ -205,7 +209,7 @@ namespace CommandTaskList
                 conn.Open();
 
                 // SQL select statement to check if the user already exists
-                var selectCommand = @"SELECT * FROM users WHERE username = @username";
+                var selectCommand = @"SELECT * FROM users, user_id WHERE username = @username";
 
                 await using (var cmd = new NpgsqlCommand(selectCommand, conn))
                 {
@@ -217,7 +221,7 @@ namespace CommandTaskList
                         if (await reader.ReadAsync())
                         {
                             Console.WriteLine("User with this email already exists.");
-                            LoginSquence();
+                            Start();
                             return; // Exit the method to prevent further execution
                         }
                     } // Reader is disposed and closed here
@@ -225,19 +229,25 @@ namespace CommandTaskList
                     // If no user was found, proceed to insert
                     Console.WriteLine("No user found with this email. Proceeding to insert.");
 
-                    var insertCommand = @"INSERT INTO users (username, hash) VALUES (@username, @hash)";
+                    var insertCommand = @"INSERT INTO users (username, hash, questionamount) VALUES (@username, @hash, @questionamount) RETURNING user_id";
 
                     await using (var insertCmd = new NpgsqlCommand(insertCommand, conn))
                     {
                         // Assuming 'hashVal' is already defined
                         insertCmd.Parameters.AddWithValue("@username", email);
                         insertCmd.Parameters.AddWithValue("@hash", hashVal);
-
+                        insertCmd.Parameters.AddWithValue("@questionamount", 0);
+                        questionAmount = 0;
+                        var userId = await insertCmd.ExecuteScalarAsync();
+                        userID = Convert.ToInt32(userId);
                         // Execute the insert command
                         await insertCmd.ExecuteNonQueryAsync();
                         Console.WriteLine("New user inserted successfully.");
                         WelcomeUserText("register");
                     }
+
+
+
                 }
             }
             catch (Npgsql.PostgresException ex)
@@ -322,6 +332,52 @@ namespace CommandTaskList
                         Console.WriteLine("<!>l_ calltype was wrong, is was entered: " + l_callType);
                         break;
                 }
+                try
+                {
+                    using (var conn = new NpgsqlConnection(connString))
+                    {
+                        conn.Open(); // Open the connection
+
+                        // SQL query to get both the email and hash
+                        string query = "SELECT questionAmount FROM users WHERE user_id = @user_id";
+
+                        using (var cmd = new NpgsqlCommand(query, conn))
+                        {
+                            // Add the email parameter to prevent SQL injection
+                            cmd.Parameters.AddWithValue("user_id", userID);
+
+                            using (var reader = cmd.ExecuteReader())
+                            {
+                                if (reader.Read())
+                                {
+                                    if (reader["questionamount"] != DBNull.Value)
+                                    {
+                                        int questionNumber = reader.GetOrdinal("questionamount");
+                                        questionAmount = reader.GetInt32(questionNumber);
+                                        Console.WriteLine("question amount = " + questionAmount);
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Email not found.");
+
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Npgsql.PostgresException ex)
+                {
+                    // Handle PostgreSQL-specific exceptions
+                    Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    // Handle other exceptions
+                    Console.WriteLine($"An error occurred: {ex.Message}");
+                }
+
+
                 GetUserCommandInput();
             }
             else
@@ -407,26 +463,31 @@ namespace CommandTaskList
         {
             if (logedin)
             {
-
+                Console.WriteLine(">>>Plaese enter the task name");
+                string taskNameInput = Console.ReadLine();
+                Console.WriteLine(">>>Please enter a description for the task");
+                string taskDescriptionInput = Console.ReadLine();
             }
             else
             {
                 Console.WriteLine(">>>You are not logged in!");
-                Task.Run(() => Start()).GetAwaiter().GetResult();
+                Start();
             }
         }
-
+        
         static void CommandGetTaskList()
         {
             if (logedin)
             {
+                string[] tasksOnDatabase = new string[questionAmount];
                 Console.WriteLine(">>>Get list");
 
             }
             else
             {
                 Console.WriteLine(">>>You are not logged in!");
-                Task.Run(() => Start()).GetAwaiter().GetResult();
+                Start();
+
             }
         }
 
@@ -441,7 +502,7 @@ namespace CommandTaskList
             else
             {
                 Console.WriteLine(">>>You are not logged in!");
-                Task.Run(() => Start()).GetAwaiter().GetResult();
+                Start();
             }
         }
 
@@ -456,7 +517,7 @@ namespace CommandTaskList
             else
             {
                 Console.WriteLine(">>>You are not logged in!");
-                Task.Run(() => Start()).GetAwaiter().GetResult();
+                Start();
             }
         }
 
@@ -469,6 +530,7 @@ namespace CommandTaskList
             Console.WriteLine(">>>Logout successful");
             Console.WriteLine("");
             logedin = false;
+            Start();
         }
 
 
@@ -478,18 +540,12 @@ namespace CommandTaskList
             {
                 //TOOD: Logout functionality
                 Environment.Exit(0);
-
             }
             else
             {
                 Console.WriteLine(">>>You are not logged in!");
-                Task.Run(() => Start()).GetAwaiter().GetResult();
+                Start();
             }
         }
-
-
-        #region API Calls
     }
-
-    #endregion
 }
