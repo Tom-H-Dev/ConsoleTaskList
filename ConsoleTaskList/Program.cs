@@ -354,13 +354,11 @@ namespace CommandTaskList
                                     {
                                         int questionNumber = reader.GetOrdinal("questionamount");
                                         questionAmount = reader.GetInt32(questionNumber);
-                                        Console.WriteLine("question amount = " + questionAmount);
                                     }
                                 }
                                 else
                                 {
                                     Console.WriteLine("Email not found.");
-
                                 }
                             }
                         }
@@ -415,6 +413,9 @@ namespace CommandTaskList
                         clearConsole = true;
                         CommandClear();
                         break;
+                    case "c-create task":
+                        CommandCreateTask();
+                        break;
                     case "c-exit":
 
                         break;
@@ -467,6 +468,63 @@ namespace CommandTaskList
                 string taskNameInput = Console.ReadLine();
                 Console.WriteLine(">>>Please enter a description for the task");
                 string taskDescriptionInput = Console.ReadLine();
+                questionAmount++;
+                string taskNumber = "task" + questionAmount;
+                //string createTaskQuerry = $"ALTER TABLE users ADD {taskNumber} TEXT, ADD {taskNumber + "description"} TEXT";
+                string createTaskQuerry = $"ALTER TABLE users ADD {taskNumber} TEXT, ADD {taskNumber}_description TEXT";
+
+                //string updateTaskQuerry = $"UPDATE users SET {taskNumber} = {taskNameInput}, {taskNumber + "description"} = {taskDescriptionInput},questionamount = {questionAmount} WHERE user_id = {userID}";
+                string updateTaskQuerry = $"UPDATE users SET {taskNumber} = '{taskNameInput}', " +
+                                          $"{taskNumber}_description = '{taskDescriptionInput}', " +
+                                          $"questionamount = {questionAmount} WHERE user_id = {userID}";
+
+
+                try
+                {
+                    using (var connection = new NpgsqlConnection(connString))
+                    {
+                        connection.Open();
+                        using (var transaction = connection.BeginTransaction())
+                        using (var command = new NpgsqlCommand())
+                        {
+                            command.Connection = connection;
+                            command.Transaction = transaction;
+
+                            try
+                            {
+                                // Step 1: Add new column
+                                command.CommandText = createTaskQuerry;
+                                command.ExecuteNonQuery();
+
+                                // Step 2: Update the new column
+                                command.CommandText = updateTaskQuerry;
+                                command.ExecuteNonQuery();
+
+                                // Commit the transaction
+                                transaction.Commit();
+
+                                SetBlankLine();
+                                GetUserCommandInput();
+                            }
+                            catch (Exception ex)
+                            {
+                                // Rollback on error
+                                transaction.Rollback();
+                                Console.WriteLine($"An error occurred: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+                catch (Npgsql.PostgresException ex)
+                {
+                    // Handle PostgreSQL-specific exceptions
+                    Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    // Handle other exceptions
+                    Console.WriteLine($"An error occurred: {ex.Message}");
+                }
             }
             else
             {
@@ -474,7 +532,7 @@ namespace CommandTaskList
                 Start();
             }
         }
-        
+
         static void CommandGetTaskList()
         {
             if (logedin)
@@ -496,7 +554,7 @@ namespace CommandTaskList
             if (logedin)
             {
                 Console.WriteLine(">>>What task do you want to see?");
-                Console.WriteLine(">>>Enter like \"Task {task name}\"");
+                Console.WriteLine(">>>Enter like \"c-task {task name}\"");
                 string userTaskInput = Console.ReadLine();
             }
             else
@@ -511,7 +569,7 @@ namespace CommandTaskList
             if (logedin)
             {
                 Console.WriteLine(">>>What task do you want to delete?");
-                Console.WriteLine(">>>Enter like \"Delete {task name}\"");
+                Console.WriteLine(">>>Enter like \"c-delete {task name}\"");
                 string userTaskInput = Console.ReadLine();
             }
             else
