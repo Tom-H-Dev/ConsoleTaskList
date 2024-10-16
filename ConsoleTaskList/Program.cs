@@ -624,8 +624,175 @@ namespace CommandTaskList
             if (logedin)
             {
                 Console.WriteLine(">>>What task do you want to delete?");
-                Console.WriteLine(">>>Enter like \"c-delete {task name}\"");
+                Console.WriteLine(">>>Enter like \"{task name}\"");
                 string userTaskInput = Console.ReadLine();
+
+                bool taskFound = false; // To track if the task was found
+                int taskIndexToDelete = -1;
+
+
+                // First, check if the task exists and get its index
+                for (int i = 1; i <= questionAmount; i++)
+                {
+                    string query = $@"SELECT task{i} 
+                      FROM users 
+                      WHERE task{i} ILIKE @userinput AND user_id = @user_id";
+
+                    try
+                    {
+                        using (var connection = new NpgsqlConnection(connString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand(query, connection))
+                            {
+                                // Add parameters to prevent SQL injection
+                                command.Parameters.AddWithValue("userinput", userTaskInput);
+                                command.Parameters.AddWithValue("user_id", userID);
+
+                                using (var reader = command.ExecuteReader())
+                                {
+                                    if (reader.Read())
+                                    {
+                                        taskFound = true; // Task found
+                                        taskIndexToDelete = i; // Store the index of the task to delete
+                                        Console.WriteLine(">>>Task found. Deleting...");
+
+                                        // You can break here since you only need the first match
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Npgsql.PostgresException ex)
+                    {
+                        Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"An error occurred: {ex.Message}");
+                    }
+                }
+
+                // If the task was found, delete it and update subsequent tasks
+                if (taskFound && taskIndexToDelete != -1)
+                {
+                    // Step 1: Delete the task
+                    string deleteQuery = $@"UPDATE users 
+                            SET task{taskIndexToDelete} = NULL, 
+                                task{taskIndexToDelete}_description = NULL 
+                            WHERE user_id = @user_id AND task{taskIndexToDelete} ILIKE @userinput";
+
+                    try
+                    {
+                        using (var connection = new NpgsqlConnection(connString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand(deleteQuery, connection))
+                            {
+                                command.Parameters.AddWithValue("userinput", userTaskInput);
+                                command.Parameters.AddWithValue("user_id", userID);
+                                command.ExecuteNonQuery();
+                                Console.WriteLine(">>>Task Deleted");
+                            }
+                        }
+                    }
+                    catch (Npgsql.PostgresException ex)
+                    {
+                        Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"An error occurred: {ex.Message}");
+                    }
+
+                    // Step 2: Update subsequent tasks
+                    for (int i = taskIndexToDelete + 1; i <= questionAmount; i++)
+                    {
+                        string updateQuery = $@"UPDATE users 
+                                SET task{i - 1} = task{i}, 
+                                    task{i - 1}_description = task{i}_description 
+                                WHERE user_id = @user_id";
+
+                        try
+                        {
+                            using (var connection = new NpgsqlConnection(connString))
+                            {
+                                connection.Open();
+                                using (var command = new NpgsqlCommand(updateQuery, connection))
+                                {
+                                    command.Parameters.AddWithValue("user_id", userID);
+                                    command.ExecuteNonQuery();
+                                }
+                            }
+                        }
+                        catch (Npgsql.PostgresException ex)
+                        {
+                            Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"An error occurred: {ex.Message}");
+                        }
+                    }
+
+                    // Step 3: Update the total question amount in the users table
+                    string updateQuestionAmountQuery = @"UPDATE users 
+                                          SET questionAmount = questionAmount - 1 
+                                          WHERE user_id = @user_id";
+
+                    try
+                    {
+                        using (var connection = new NpgsqlConnection(connString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand(updateQuestionAmountQuery, connection))
+                            {
+                                command.Parameters.AddWithValue("user_id", userID);
+                                command.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    catch (Npgsql.PostgresException ex)
+                    {
+                        Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"An error occurred: {ex.Message}");
+                    }
+                    questionAmount--;
+
+                    // Step 4: Drops old columns that will break system
+                    string updateColumnsFromOld = @$"ALTER TABLE users  DROP COLUMN task{questionAmount+1}, DROP COLUMN task{questionAmount + 1}_description";
+
+                    try
+                    {
+                        using (var connection = new NpgsqlConnection(connString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand(updateColumnsFromOld, connection))
+                            {
+                                command.Parameters.AddWithValue("user_id", userID);
+                                command.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                    catch (Npgsql.PostgresException ex)
+                    {
+                        Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"An error occurred: {ex.Message}");
+                    }
+                }
+                else if (!taskFound)
+                {
+                    Console.WriteLine("No matching tasks found.");
+                }
+                SetBlankLine();
+                GetUserCommandInput();
             }
             else
             {
