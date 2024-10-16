@@ -537,9 +537,47 @@ namespace CommandTaskList
         {
             if (logedin)
             {
-                string[] tasksOnDatabase = new string[questionAmount];
                 Console.WriteLine(">>>Get list");
 
+
+                // Final SQL query with user_id condition
+                for (int i = 1; i <= questionAmount; i++) // Changed < to <= to include last question
+                {
+                    string listQuesry = $@"SELECT task{i} FROM users WHERE user_id = @user_id"; // ILIKE for case-insensitive search
+
+                    try
+                    {
+                        using (var connection = new NpgsqlConnection(connString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand(listQuesry, connection))
+                            {
+                                command.Parameters.AddWithValue("user_id", userID);
+
+                                using (var reader = command.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        Console.WriteLine($">>>Task {i}: {reader[$"task{i}"]}");
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Npgsql.PostgresException ex)
+                    {
+                        // Handle PostgreSQL-specific exceptions
+                        Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Handle other exceptions
+                        Console.WriteLine($"An error occurred: {ex.Message}");
+                    }
+                }
+                SetBlankLine();
+                GetUserCommandInput();
             }
             else
             {
@@ -764,7 +802,7 @@ namespace CommandTaskList
                     questionAmount--;
 
                     // Step 4: Drops old columns that will break system
-                    string updateColumnsFromOld = @$"ALTER TABLE users  DROP COLUMN task{questionAmount+1}, DROP COLUMN task{questionAmount + 1}_description";
+                    string updateColumnsFromOld = @$"ALTER TABLE users  DROP COLUMN task{questionAmount + 1}, DROP COLUMN task{questionAmount + 1}_description";
 
                     try
                     {
