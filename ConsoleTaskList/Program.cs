@@ -464,20 +464,65 @@ namespace CommandTaskList
         {
             if (logedin)
             {
-                Console.WriteLine(">>>Plaese enter the task name");
+                Console.WriteLine(">>>Please enter the task name");
                 string taskNameInput = Console.ReadLine();
                 Console.WriteLine(">>>Please enter a description for the task");
                 string taskDescriptionInput = Console.ReadLine();
+
+                // Check if a task with the same name already exists
+                bool taskExists = false;
+
+                for (int i = 1; i <= questionAmount; i++)
+                {
+                    string checkTaskQuery = $@"SELECT task{i} 
+                                        FROM users 
+                                        WHERE user_id = @user_id AND task{i} ILIKE @taskName";
+
+                    try
+                    {
+                        using (var connection = new NpgsqlConnection(connString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand(checkTaskQuery, connection))
+                            {
+                                command.Parameters.AddWithValue("user_id", userID);
+                                command.Parameters.AddWithValue("taskName", taskNameInput);
+                                var result = command.ExecuteScalar();
+
+                                if (result != null && result.ToString().Equals(taskNameInput, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    taskExists = true;
+                                    break; // Exit loop if a matching task is found
+                                }
+                            }
+                        }
+                    }
+                    catch (Npgsql.PostgresException ex)
+                    {
+                        Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"An error occurred: {ex.Message}");
+                    }
+                }
+
+                // If a task with the same name exists, inform the user
+                if (taskExists)
+                {
+                    Console.WriteLine(">>>A task with the same name already exists. Please choose a different name.");
+                    SetBlankLine();
+                    GetUserCommandInput();
+                    return; // Exit the function early
+                }
+
+                // If no task exists, proceed with creating the new task
                 questionAmount++;
                 string taskNumber = "task" + questionAmount;
-                //string createTaskQuerry = $"ALTER TABLE users ADD {taskNumber} TEXT, ADD {taskNumber + "description"} TEXT";
-                string createTaskQuerry = $"ALTER TABLE users ADD {taskNumber} TEXT, ADD {taskNumber}_description TEXT";
-
-                //string updateTaskQuerry = $"UPDATE users SET {taskNumber} = {taskNameInput}, {taskNumber + "description"} = {taskDescriptionInput},questionamount = {questionAmount} WHERE user_id = {userID}";
-                string updateTaskQuerry = $"UPDATE users SET {taskNumber} = '{taskNameInput}', " +
-                                          $"{taskNumber}_description = '{taskDescriptionInput}', " +
-                                          $"questionamount = {questionAmount} WHERE user_id = {userID}";
-
+                string createTaskQuery = $"ALTER TABLE users ADD {taskNumber} TEXT, ADD {taskNumber}_description TEXT";
+                string updateTaskQuery = $"UPDATE users SET {taskNumber} = @taskName, " +
+                                          $"{taskNumber}_description = @taskDescription, " +
+                                          $"questionamount = {questionAmount} WHERE user_id = @user_id";
 
                 try
                 {
@@ -493,16 +538,20 @@ namespace CommandTaskList
                             try
                             {
                                 // Step 1: Add new column
-                                command.CommandText = createTaskQuerry;
+                                command.CommandText = createTaskQuery;
                                 command.ExecuteNonQuery();
 
                                 // Step 2: Update the new column
-                                command.CommandText = updateTaskQuerry;
+                                command.CommandText = updateTaskQuery;
+                                command.Parameters.AddWithValue("taskName", taskNameInput);
+                                command.Parameters.AddWithValue("taskDescription", taskDescriptionInput);
+                                command.Parameters.AddWithValue("user_id", userID);
                                 command.ExecuteNonQuery();
 
                                 // Commit the transaction
                                 transaction.Commit();
 
+                                Console.WriteLine(">>>Task created successfully.");
                                 SetBlankLine();
                                 GetUserCommandInput();
                             }
@@ -517,12 +566,10 @@ namespace CommandTaskList
                 }
                 catch (Npgsql.PostgresException ex)
                 {
-                    // Handle PostgreSQL-specific exceptions
                     Console.WriteLine($"PostgreSQL error: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
-                    // Handle other exceptions
                     Console.WriteLine($"An error occurred: {ex.Message}");
                 }
             }
