@@ -554,8 +554,63 @@ namespace CommandTaskList
             if (logedin)
             {
                 Console.WriteLine(">>>What task do you want to see?");
-                Console.WriteLine(">>>Enter like \"c-task {task name}\"");
+                Console.WriteLine(">>>Enter like \"{task name}\"");
                 string userTaskInput = Console.ReadLine();
+
+                bool taskFound = false; // To track if the task was found
+
+                // Final SQL query with user_id condition
+                for (int i = 1; i <= questionAmount; i++) // Changed < to <= to include last question
+                {
+                    string query = $@"SELECT user_id, task{i}_description 
+                      FROM users
+                      WHERE task{i} ILIKE @userinput AND user_id = @user_id"; // ILIKE for case-insensitive search
+
+                    try
+                    {
+                        using (var connection = new NpgsqlConnection(connString))
+                        {
+                            connection.Open();
+                            using (var command = new NpgsqlCommand(query, connection))
+                            {
+                                // Add parameters to prevent SQL injection
+                                command.Parameters.AddWithValue("userinput", userTaskInput);
+                                command.Parameters.AddWithValue("user_id", userID);
+
+                                using (var reader = command.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        taskFound = true; // Task found
+                                        Console.WriteLine($">>>Task Description: {reader[$"task{i}_description"]}");
+
+                                        SetBlankLine();
+                                        GetUserCommandInput();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Npgsql.PostgresException ex)
+                    {
+                        // Handle PostgreSQL-specific exceptions
+                        Console.WriteLine($"PostgreSQL error: {ex.Message}");
+                    }
+                    catch (Exception ex)
+                    {
+                        // Handle other exceptions
+                        Console.WriteLine($"An error occurred: {ex.Message}");
+                    }
+                }
+
+                // After the loop, check if any task was found
+                if (!taskFound)
+                {
+                    Console.WriteLine("No matching tasks found.");
+                    SetBlankLine();
+                    GetUserCommandInput();
+                }
+
             }
             else
             {
@@ -596,7 +651,6 @@ namespace CommandTaskList
         {
             if (logedin)
             {
-                //TOOD: Logout functionality
                 Environment.Exit(0);
             }
             else
