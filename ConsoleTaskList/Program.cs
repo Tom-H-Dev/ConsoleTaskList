@@ -417,7 +417,10 @@ namespace CommandTaskList
                         CommandCreateTask();
                         break;
                     case "c-exit":
-
+                        CommandExit();
+                        break;
+                    case "c-logout":
+                        CommandLogout();
                         break;
                     default:
                         Console.WriteLine("<!>The command you entered was not found");
